@@ -1,16 +1,17 @@
-var b;
-var c;
+var Populacao = 200;
+var TaxaIsolamento = 0;
 var w = 1300; // tamanho da tela na horizontal
 var h = 600; // tamanho da tela na vertical
 
+//CLASSE QUE DEFINE OS STATUS DOS CIDADOES
 class SIR {
-  static get S() {
+  static get S() {	//Status suscetiveis
     return 0;
   }
-  static get I() {
+  static get I() {	//Status infectado
     return 1;
   }
-  static get R() {
+  static get R() {	//status recuperado
     return 2;
   }
 }
@@ -50,9 +51,9 @@ function draw() {
 
 class Cidade {
     constructor() {
-      this.populacao = 200;	// numero de população
-      this.taxaDeIsolamento = 0;	// taxa de população dentro de casa
-      this.cidadaos = [];
+      this.populacao = Populacao;			// numero de população
+      this.taxaDeIsolamento = TaxaIsolamento;	// taxa de população dentro de casa
+      this.cidadaos = [];			//Array para guardar os cidadaos
 
       this.status = {};
       this.status[SIR.S] = 0;	//suscetiveis
@@ -61,6 +62,7 @@ class Cidade {
 
       this.isCorongaGone = false; // Variavel para parar quando os cidadoes estiverem recuperados
 
+			//For que cria as pessoas para dentro do array incrimentavelmente
       for (let i = 0; i < this.populacao; i++) {
           this.cidadaos.push(new Cidadao(i, this.taxaDeIsolamento));
       }
@@ -78,6 +80,7 @@ class Cidade {
 
 
         let s = 0, i = 0, r = 0;
+			//REALIZA A MOVIMENTAÇÃO DO UPDATE DO CIDADAO
         for (let k = 0; k < this.populacao; k++) {
             let cidadao = this.cidadaos[k];
             cidadao.update();
@@ -93,6 +96,7 @@ class Cidade {
     }
 
     draw() {
+			// desenha os cidadaos
         for (let i = 0; i < this.populacao; i++) {
             this.cidadaos[i].draw();
         }
@@ -105,27 +109,26 @@ class Cidadao {
       this.speed = 2;	//velocidade que o cidadao vai andar
       this.size = 14;	//tamanho da ellipse do cidadao
       this.status = SIR.S;	// status inicial do cidadao é como suscetivel
-      this.dataInfeccao = 0;
-      this.tempoRecuperacao = random(2, 14);
-      this.estaEmCasa = random(0, 100) < taxaIsolamento;	// numero aleatorio de cidadoes dentro de casa
+      this.dataInfeccao = 0;	//Tempo que ele foi infectado
+      this.tempoRecuperacao = random(4, 15);	// Tempo de recuperação entre 4 a 15 segundos
+      this.estaEmCasa = random(0, 100) < taxaIsolamento;	// valor aleatorio que verifica se cidadao esta em casa
   
-      this.location = createVector(random(width/3, width), random(0, height));
-      this.velocity = createVector(this.speed, this.speed);
-    }
-
+      this.localizacao = createVector(random(width/3, width), random(0, height)); // tamanho da tela que o cidadao ira se mover
+      this.velocity = createVector(this.speed, this.speed);	// Vetor de velocidade que o cidao ira se movimentar move 2 pra direita e 2 pra baixo
+	}
+			// verifica colisao com outras pessoas
     verificaInteracoes(outrasPessoas) {
-        
         for (let i = 0; i < outrasPessoas.length; i++) {
-            if (this.id === i)
+            if (this.id === i) // comparando se o id é igual
                 continue;
             
-            let dx = outrasPessoas[i].location.x - this.location.x;
-            let dy = outrasPessoas[i].location.y - this.location.y;
-            let distance = sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-            let minDist = this.size + outrasPessoas[i].size;
+            let dx = outrasPessoas[i].localizacao.x - this.localizacao.x; //Diferença do x com a população
+            let dy = outrasPessoas[i].localizacao.y - this.localizacao.y;	// deferneça do y com a populacao
+            let distance = sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));	//distancia de dois pontos
+            let minDist = this.size + outrasPessoas[i].size; // tamanho meu mais da outra pessoa
 
-            if (distance <= minDist) {
-                if (outrasPessoas[i].status === SIR.I && this.status === SIR.S) {
+            if (distance <= minDist) {	// se a distancia de dois pontos for menor o igual que a distancia minima
+                if (outrasPessoas[i].status === SIR.I && this.status === SIR.S) { //se uma ta infectada e outra n
                     this.status = SIR.I; // PEGOU CORONGA
                     this.dataInfeccao = floor(millis()/1000);
                 }
@@ -133,22 +136,24 @@ class Cidadao {
         }
     }
     
-    update() {
-        if (this.status === SIR.I) {
-            let hoje = floor(millis()/1000);
-            if (hoje - this.dataInfeccao >= this.tempoRecuperacao) {
-                this.status = SIR.R;
+    update() {	//Função que ficará atualizando toda hora.
+        
+		//VERIFICA SE O CIDADAO SE RECUPEROU
+		if (this.status === SIR.I) {
+            let hoje = floor(millis()/1000);	//verifica os segundos de execução do programa
+            if (hoje - this.dataInfeccao >= this.tempoRecuperacao) { // se a hora de agora menos a hora de infecção for maior que o tempo de recuperação ele fica recuperado
+                this.status = SIR.R;	// o status muda para recuperado
             }
         }
-
+			// Verifica se o cidadao está em casa. e fica parado no canvas
         if (this.estaEmCasa) {
             return;
         }
         
-        this.location.add(this.velocity);
-        this.velocity.rotate(radians(random(-30, 30)));
-
-        if (this.location.x <= width/3 || this.location.x > width || this.location.y < 0 || this.location.y >= height) {
+        this.localizacao.add(this.velocity);	// Adiciona a velocidade para o cidadao se movimentar.
+        this.velocity.rotate(radians(random(-30, 30)));	// Adiciona rotação ao movimento da bolinha.
+			// verifica a localização da bolinha, o x e y e verifica se ele passou a largura e altura e inverte a posição
+        if (this.localizacao.x <= width/3 || this.localizacao.x > width || this.localizacao.y < 0 || this.localizacao.y >= height) {
             this.velocity.y = this.velocity.y * -1;
             this.velocity.x = this.velocity.x * -1;
         }
@@ -156,21 +161,21 @@ class Cidadao {
     
     draw() {
       
-      strokeWeight(1);
-      if (this.status === SIR.S) {
+      strokeWeight(1);	//tamanho da borda a ellipse
+      if (this.status === SIR.S) {	// se o cidadao for suscetivel fica com cor azul
         stroke(0);
         fill(0,0,255);
       }
-      else if (this.status === SIR.I) {
+      else if (this.status === SIR.I) {	// se o cidadao for infectado fica com cor laranja
         stroke(255,0,0);
         fill(255,165,0);
       }
-      else if (this.status === SIR.R) {
+      else if (this.status === SIR.R) {	// se o cidadao for recuperado fica com cor rosa
         stroke(255,0,255);
         fill(199,21,133);
       }
      
-     ellipse(this.location.x, this.location.y, this.size);
+     ellipse(this.localizacao.x, this.localizacao.y, this.size); // cria os cidadoes(ellipses) de forma aleatoria dentro do quadrado definido na localização
     }
 }
 
